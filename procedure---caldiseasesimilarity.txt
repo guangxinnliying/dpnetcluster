@@ -1,0 +1,44 @@
+drop procedure  if exists caldiseasesimilarity;
+delimiter //
+create procedure caldiseasesimilarity()  #Computing the similarity between any two diseases
+begin
+declare i,j,shpro_num,dispro_num1,dispro_num2,paircount int(6) default 0;
+declare dissim float(3,2) default 0.00;
+set i=1;
+set j=1;
+delete from diseasesimilarity;
+while i<=684 do    #the greatest order number of diseases is 684.
+  set j=i+1;
+  while j<=684 do
+    # The following select statement obtains the number of common proteins for two diseases i and j.
+    select count(distinct proteinid) into shpro_num from dprallnew where diseaseid=i and proteinid in (select distinct proteinid from disprotinformation.dprallnew where diseaseid=j);
+
+   #The following select statement obtains the number of proteins associated with disease i.
+   select count(distinct proteinid) into dispro_num1 from dprallnew where diseaseid=i;
+   #The following select statement obtains the number of proteins associated with disease j.
+   select count(distinct proteinid) into dispro_num2 from dprallnew where diseaseid=j;
+
+    if shpro_num is null then
+       set shpro_num =0 ;
+    end if;
+    if dispro_num1 is null then 
+       set dispro_num1 =0 ;
+    end if;
+    if dispro_num2 is null then 
+      set dispro_num2 =0 ;
+    end if;
+    if (shpro_num>0 && dispro_num1>0 && dispro_num2>0) then
+       set dissim=shpro_num/(sqrt(dispro_num1)*sqrt(dispro_num2));       
+       set paircount=paircount+1;
+       select i,j,shpro_num,dispro_num1,dispro_num2,dissim;       
+       insert diseasesimilarity value(i,j,shpro_num,dispro_num1,dispro_num2,dissim,0);
+    end if;
+    set j=j+1;
+  end while;
+  set i=i+1;
+end while;
+select paircount;
+end //
+delimiter ;
+
+

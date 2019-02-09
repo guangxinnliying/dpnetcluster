@@ -1,0 +1,26 @@
+drop procedure if exists find2diseases;
+delimiter //
+create procedure find2diseases(in clusternum int(6),out disease_id1 int(1),in maxdissimilarity float(3,2))   #Look for two diseases whose similarity exceeds the specified threshold. Write the current disease cluster number and the two diseases into the table "clustertmp". Return the first disease number found. If the two diseases are not found, the return disease number is NULL or 0.
+begin
+declare disease_id2,shareproteincount int(6) default 0;
+declare no_more_record boolean default true;
+declare cs_red cursor for select diseaseid1,diseaseid2 from dissimtmp where dissimilarity=maxdissimilarity and diseaseid1 not in (select diseaseid from clustertmp) and diseaseid2 not in (select diseaseid from clustertmp) limit 1;
+declare continue handler for not found set  no_more_record=false;
+
+open cs_red;
+fetch cs_red into disease_id1,disease_id2;
+
+
+if disease_id1>0 and disease_id2>0 then
+   insert clustertmp values(clusternum,disease_id1);
+   insert clustertmp values(clusternum,disease_id2);
+   
+  insert shareproteintmp(proteinid) select distinct proteinid from dprallnew where diseaseid=disease_id1;
+  update shareproteintmp set clusterid=clusternum where isnull(clusterid)=true;
+  delete from shareproteintmp where proteinid not in (select distinct proteinid from dprallnew where diseaseid=disease_id2) and clusterid=clusternum;  
+   
+end if ;
+
+close cs_red;
+end //
+delimiter ; 

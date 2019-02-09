@@ -1,0 +1,19 @@
+drop procedure if exists addalonediseases;
+delimiter //
+create procedure addalonediseases()  #add disease clusters which has only a disease.
+begin
+declare disease_id,i int(6);
+declare no_more_record boolean default true;
+declare cs_red cursor for select diseaseid from diseaseall where  diseaseid not in (select diseaseid from alldiseasecluster) ;
+declare continue handler for not found set  no_more_record=false;
+open cs_red;
+fetch cs_red into disease_id;
+set i=0;
+while no_more_record do
+set i=i+1;
+insert alldiseasecluster values( 0,'(0.0,0.0]',i,disease_id);
+fetch cs_red into disease_id;
+end while;
+close cs_red;
+end //
+delimiter ; 

@@ -1,0 +1,33 @@
+drop procedure if exists finddiseases2;
+delimiter //
+create procedure finddiseases2(in clusternum int(6))   
+
+#Investigate the diseases in the column "diseaseid2" of table "dissimtmp" to judge which diseases can be add to the currenct disease cluster.Firstly, find those diseases in column "diseaseid2" which are not in the currenct disease cluster but have connections with diseases in the currenct disease cluster. Then, these diseases in column "diseaseid2" are investigated one by one. If there is an intersection between the related proteins of a disease and the common proteins of the current disease cluster, then the disease is added to the current disease cluster.
+
+begin
+declare disease_id1,disease_id2,shareproteincount int(6);
+declare no_more_record boolean default true;
+declare cs_red cursor for select distinct diseaseid2 from dissimtmp where  diseaseid1 in (select diseaseid from clustertmp where clusterid=clusternum)  and diseaseid2 not in (select diseaseid from clustertmp) ;
+declare continue handler for not found set  no_more_record=false;
+open cs_red;
+fetch cs_red into disease_id2;
+while no_more_record do
+   if (disease_id2>0) then 
+        
+       #The select below is used to count the total common proteins which connect to the disease under investigation and all diseases in the current disease cluster. 
+        select count(*) into shareproteincount from shareproteintmp where proteinid in  (select distinct proteinid from dprallnew where diseaseid=disease_id2) and clusterid=clusternum;
+
+        if shareproteincount>0 then  #If the total common proteins is more than 0, then add the disease under investigation to the current disease cluste.
+            insert clustertmp values(clusternum,disease_id2);
+            delete from shareproteintmp where proteinid not in  (select distinct proteinid from dprallnew where diseaseid=disease_id2) and clusterid=clusternum;  #Get the common proteins which connect to the disease under investigation and all diseases in the current disease cluster. 
+        end if;
+     
+   end if ;
+   fetch cs_red into disease_id2;
+end while;
+close cs_red;
+end //
+delimiter ; 
+
+
+

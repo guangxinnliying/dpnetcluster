@@ -1,0 +1,59 @@
+drop procedure if exists extractdisclassbysection;
+delimiter //
+create procedure extractdisclassbysection(in cal_time int(3),in threshold1 float(3,2),in threshold2 float(3,2))  
+
+#cluster a disease region. Firstly, according to the two upper and lower limits of the similarity interval, the disease pairs matching this interval are selected from the  table "diseasesimilarity" and write to the temporary table "dissimtmp". We start to find the first disease cluster. Find out a disease pair with maximum similarity from table "dissimtmp", write the two diseases to the table "clustertmp", and delete the disease pair from table "dissimtmp". These actions is implemented by the stored procedure "find2diseases ()". Then choose the diseases that can add to the current disease cluster from other diseases in table "dissimtmp". There are two kinds of cases when examining the diseases. The first case is to investigate the diseases in the column  "diseaseid1" of table "dissimtmp", using the stored procedure "finddiseases1 ()"; the second case is to investigate the diseases in the column "diseaseid2" of table "dissimtmp", using the stored procedure "finddises2 ()". Then we begin to look for the next disease cluster, find the disease pair with maximum similarity from the  table "dissimtmp", and find other diseases that can add to the current cluster. So repeatedly, until no longer the disease pair with maximun similarity can be found from table "dissimtmp".
+
+begin
+declare clusternum,disease_id int(6) ;
+declare dis_code,kindid char(6);
+declare endflag boolean default true;
+declare max_dissimilarity float(3,2);
+
+drop table if exists dissimtmp;
+create  table dissimtmp(diseaseid1 int(6),diseaseid2 int(6),dissimilarity float(3,2));
+insert dissimtmp select diseaseid1, diseaseid2, dissimilarity from diseasesimilarity where dissimilarity>threshold1 and dissimilarity<=threshold2 and diseaseid1 not in (select diseaseid from alldiseasecluster) and diseaseid2 not in (select diseaseid from alldiseasecluster);  #suitable for (a,b].
+
+drop table if exists clustertmp;
+create  table  clustertmp(clusterid int(6),diseaseid int(6));
+
+drop table if exists shareproteintmp;
+create table shareproteintmp(clusterid int(6), proteinid int(6));
+
+set clusternum=0;
+loop_finddisease: loop
+
+     select max(dissimilarity) into max_dissimilarity from dissimtmp where dissimilarity>threshold1 and dissimilarity<=threshold2 and diseaseid1 not in (select diseaseid from clustertmp) and diseaseid2 not in (select diseaseid from clustertmp);
+   if  max_dissimilarity<1 then
+      select max_dissimilarity;
+   end if;
+   if isnull(max_dissimilarity) then 
+        select 'break:diseaseid is NULL';
+        leave loop_finddisease;
+   else
+         set clusternum=clusternum+1;
+         call find2diseases(clusternum,disease_id,max_dissimilarity);
+   end if;
+
+   if (disease_id is null) or disease_id=0 then      
+     select 'break:can not find two diseases with maximum similarity';
+     leave loop_finddisease;
+   else      
+      call finddiseases1(clusternum); #Candidate diseases are in the field "diseaseid1" of table "diseasesimilarity".
+      call finddiseases2(clusternum); #Candidate diseases are in the field "diseaseid2" of table "diseasesimilarity".
+
+      
+   end if;
+
+end loop;
+
+insert alldiseasecluster select cal_time,concat("(",threshold1,",",threshold2,"]"),clusterid,diseaseid from clustertmp;
+insert clusterprotein select cal_time, clusterid,proteinid from shareproteintmp;  
+
+drop table dissimtmp;
+drop table clustertmp;
+
+drop table shareproteintmp;
+end //
+delimiter ; 
+

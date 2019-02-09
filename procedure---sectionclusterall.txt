@@ -1,0 +1,19 @@
+drop procedure if exists sectionclusterall;
+delimiter //
+create procedure sectionclusterall()  #clustering all disease regions.
+begin
+delete from alldiseasecluster;
+delete from clusterprotein;
+call extractdisclassbysection(1,0.9,1); #Cluster diseases which are in the similarity range (0.9,1].
+call extractdisclassbysection(2,0.8,0.9); #Cluster diseases which are in the similarity range (0.8,0.9].
+call extractdisclassbysection(3,0.7,0.8); #Cluster diseases which are in the similarity range (0.7,8].
+call extractdisclassbysection(4,0.6,0.7); #Cluster diseases which are in the similarity range (0.6,0.7].
+call extractdisclassbysection(5,0.5,0.6); #Cluster diseases which are in the similarity range (0.5,0.6].
+call extractdisclassbysection(6,0.4,0.5); #Cluster diseases which are in the similarity range (0.4,0.5].
+call extractdisclassbysection(7,0.3,0.4); #Cluster diseases which are in the similarity range (0.3,0.4].
+call extractdisclassbysection(8,0.2,0.3); #Cluster diseases which are in the similarity range (0.2,0.3].
+call extractdisclassbysection(9,0.1,0.2); #Cluster diseases which are in the similarity range (0.1,0.2].
+call extractdisclassbysection(10,0.0,0.1); #Cluster diseases which are in the similarity range (0.0,0.1].
+call addalonediseases();   #Add those diseases which are alone.
+end //
+delimiter ; 
