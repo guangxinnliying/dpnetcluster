@@ -1,5 +1,5 @@
 # dpnetcluster
-Implementation of the Algorithm of constructing a protein-based disease network by searching for disease groups in each similarity interval. The algorithm is implemented by several procedures. The database and procedures are in the download files.
+Implementation of the Algorithm of constructing a protein-based disease network by searching for disease groups in all disease similarity intervals. The algorithm is implemented by several procedures. The database and procedures are in the download files.
 Installation instructions are below.
 step 1.Create a database in MySQL with the name of "diseaseproteindb". 
 step 2.Download "diseaseproteindb.sql" and all the procedure files to your computor.
